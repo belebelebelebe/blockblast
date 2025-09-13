@@ -1,451 +1,584 @@
-const canvas = document.getElementById("MyCanvas");
-const ctx = canvas.getContext("2d");
 
-const pink = "#ffd1dc";
-const green = "#8da58d";
-const yellow = "#fffacd";
-const blue = "#cfe2f3";
-const purple = "#d9d2e9";
-const colour_list = [pink, green, yellow, blue, purple];
-const shape_list = [
-    [[1, 0], [1, 1]],
-    [[1, 1], [1, 1]],
-    [[1, 0], [1, 0], [1, 1]],
-    [[0, 1], [1, 1], [1, 0]],
-    [[1, 0], [1, 1], [0, 1]],
-    [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-    [[1, 1, 1, 1]],
-    [[1], [1], [1], [1]],
-];
-const size = 50;
-const smallSize = 30;
-var score = 0;
+        const canvas = document.getElementById("MyCanvas");
+        const ctx = canvas.getContext("2d");
 
-// Draw the grid
-function drawGrid() {
-    ctx.strokeStyle = "#aaa";
-    ctx.lineWidth = 1;
-    for (var i = 1; i <= 8; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, size * i);
-        ctx.lineTo(400, size * i);
-        ctx.stroke();
-    }
-    for (var i = 1; i <= 8; i++) {
-        ctx.beginPath();
-        ctx.moveTo(size * i, 0);
-        ctx.lineTo(size * i, 400);
-        ctx.stroke();
-    }
-    // Light grid background
-    ctx.save();
-    ctx.globalAlpha = 0.04;
-    ctx.fillStyle = "#5656ff";
-    ctx.fillRect(0, 0, 400, 400);
-    ctx.restore();
-}
+        // Colors and shape definitions
+        const pink = "#ffd1dc";
+        const green = "#8da58d";
+        const yellow = "#fffacd";
+        const blue = "#cfe2f3";
+        const purple = "#d9d2e9";
+        const colour_list = [pink, green, yellow, blue, purple];
+        const shape_list = [
+            [[1, 0], [1, 1]],
+            [[1, 1], [1, 1]],
+            [[1, 0], [1, 0], [1, 1]],
+            [[0, 1], [1, 1], [1, 0]],
+            [[1, 0], [1, 1], [0, 1]],
+            [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
+            [[1, 1, 1, 1]],
+            [[1], [1], [1], [1]],
+        ];
+        const size = 50;
+        const smallSize = 40;
+        let score = 0;
+        let highscore = JSON.parse(localStorage.getItem('highscore')) || 0;
 
-function drawScore(){
-    ctx.save();
-    ctx.font = "35px Handjet, Arial, sans-serif";
-    ctx.fillStyle = "#323680";
-    ctx.textBaseline = "top";
-    ctx.fillText("Score: " + score, 410, 24);
-    ctx.restore();
-}
-
-const startingPositions = [
-    { x: 25, y: 450 },
-    { x: 175, y: 450 },
-    { x: 350, y: 450 }
-];
-
-function randomBlock(idx) {
-    return {
-        x: startingPositions[idx].x,
-        y: startingPositions[idx].y,
-        originalX: startingPositions[idx].x,
-        originalY: startingPositions[idx].y,
-        colour: colour_list[Math.floor(Math.random() * colour_list.length)],
-        shape: JSON.parse(JSON.stringify(shape_list[Math.floor(Math.random() * shape_list.length)])),
-        isPlaced: false,
-        isDragging: false,
-    };
-}
-
-function regenerateBlocks() {
-    for (let i = 0; i < 3; i++) {
-        blocks[i] = randomBlock(i);
-    }
-}
-
-let blocks = [randomBlock(0), randomBlock(1), randomBlock(2)];
-let placedBlocks = [];
-
-// Draw a single block
-function drawBlock(block, placed=false) {
-    const blockSize = placed || block.isPlaced || block.isDragging ? size : smallSize;
-    ctx.fillStyle = block.colour;
-    ctx.strokeStyle = "#888";
-    ctx.lineWidth = 2;
-    for (let row = 0; row < block.shape.length; row++) {
-        for (let col = 0; col < block.shape[row].length; col++) {
-            if (block.shape[row][col] === 1) {
-                ctx.save();
-                ctx.shadowColor = "#bfc2ec";
-                ctx.shadowBlur = (block.isDragging && !placed) ? 18 : 5;
-                ctx.fillRect(
-                    block.x + col * blockSize,
-                    block.y + row * blockSize,
-                    blockSize,
-                    blockSize
-                );
-                ctx.shadowBlur = 0;
-                ctx.strokeRect(
-                    block.x + col * blockSize,
-                    block.y + row * blockSize,
-                    blockSize,
-                    blockSize
-                );
-                ctx.restore();
+        // Draw the grid
+        function drawGrid() {
+            ctx.strokeStyle = "#aaa";
+            ctx.lineWidth = 1;
+            for (let i = 1; i <= 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, size * i);
+                ctx.lineTo(400, size * i);
+                ctx.stroke();
             }
-        }
-    }
-}
-
-// Draw all blocks (placed and draggable)
-function drawBlocks() {
-    placedBlocks.forEach((block) => drawBlock(block, true));
-    blocks.forEach((block) => drawBlock(block));
-}
-
-// Helper: get all filled squares of a block in grid coordinates
-function getBlockCells(block, useSize = size) {
-    let cells = [];
-    for (let row = 0; row < block.shape.length; row++) {
-        for (let col = 0; col < block.shape[row].length; col++) {
-            if (block.shape[row][col] === 1) {
-                let gridX = Math.floor((block.x + col * useSize) / size);
-                let gridY = Math.floor((block.y + row * useSize) / size);
-                cells.push({ x: gridX, y: gridY });
+            for (let i = 1; i <= 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(size * i, 0);
+                ctx.lineTo(size * i, 400);
+                ctx.stroke();
             }
+            ctx.save();
+            ctx.globalAlpha = 0.04;
+            ctx.fillStyle = "#5656ff";
+            ctx.fillRect(0, 0, 400, 400);
+            ctx.restore();
         }
-    }
-    return cells;
-}
 
-// Helper: check overlap with placed blocks
-function isOverlapping(testBlock) {
-    const testCells = getBlockCells(testBlock, size);
-    for (let block of placedBlocks) {
-        const blockCells = getBlockCells(block, size);
-        for (let cell of testCells) {
-            if (blockCells.some(bc => bc.x === cell.x && bc.y === cell.y)) return true;
+        function drawScore() {
+            ctx.save();
+            ctx.font = "35px Handjet, Arial, sans-serif";
+            ctx.fillStyle = "#323680";
+            ctx.textBaseline = "top";
+            ctx.fillText("Score: " + score, 410, 24);
+            ctx.restore();
         }
-    }
-    return false;
-}
 
-// Check if block is within grid bounds
-function isWithinBounds(block) {
-    const gridX = block.x / size;
-    const gridY = block.y / size;
-    for (let r = 0; r < block.shape.length; r++) {
-        for (let c = 0; c < block.shape[r].length; c++) {
-            if (block.shape[r][c] === 1) {
-                let x = gridX + c;
-                let y = gridY + r;
-                if (x < 0 || x >= 8 || y < 0 || y >= 8) return false;
+        function drawHighscore() {
+            ctx.font = "25px Handjet, Arial, sans-serif";
+            ctx.fillStyle = "#323680";
+            ctx.textBaseline = "top";
+            ctx.fillText("Highscore: " + highscore, 410, 54);
+        }
+
+        const startingPositions = [
+            { x: 25, y: 450 },
+            { x: 175, y: 450 },
+            { x: 350, y: 450 }
+        ];
+
+        function randomBlock(idx) {
+            return {
+                x: startingPositions[idx].x,
+                y: startingPositions[idx].y,
+                originalX: startingPositions[idx].x,
+                originalY: startingPositions[idx].y,
+                colour: colour_list[Math.floor(Math.random() * colour_list.length)],
+                shape: JSON.parse(JSON.stringify(shape_list[Math.floor(Math.random() * shape_list.length)])),
+                isPlaced: false,
+                isDragging: false,
+            };
+        }
+
+        function regenerateBlocks() {
+            for (let i = 0; i < 3; i++) {
+                blocks[i] = randomBlock(i);
+                blocks[i].x = startingPositions[i].x;
+                blocks[i].y = startingPositions[i].y;
             }
+            console.log("Regenerated blocks:", blocks);
         }
-    }
-    return true;
-}
 
-// --------- ROW & COLUMN CLEAR LOGIC -----------
+        let blocks = [randomBlock(0), randomBlock(1), randomBlock(2)];
+        let placedBlocks = [];
 
-function buildCellMap() {
-    let cellMap = {};
-    placedBlocks.forEach((block, bIdx) => {
-        for (let row = 0; row < block.shape.length; row++) {
-            for (let col = 0; col < block.shape[row].length; col++) {
-                if (block.shape[row][col] === 1) {
-                    let gridX = Math.round((block.x + col * size) / size);
-                    let gridY = Math.round((block.y + row * size) / size);
-                    let key = `${gridX},${gridY}`;
-                    cellMap[key] = {
-                        blockIndex: bIdx,
-                        row: row,
-                        col: col
-                    };
-                }
-            }
-        }
-    });
-    return cellMap;
-}
-
-// Clear filled rows/columns
-function clearFilledRowsAndColumns() {
-    let cellMap = buildCellMap();
-    let rowCounts = Array(8).fill(0);
-    let colCounts = Array(8).fill(0);
-
-    for (let key in cellMap) {
-        let [x, y] = key.split(',').map(Number);
-        if (x >= 0 && x < 8 && y >= 0 && y < 8) {
-            colCounts[x]++;
-            rowCounts[y]++;
-        }
-    }
-
-    let filledRows = [];
-    let filledCols = [];
-    for (let i = 0; i < 8; i++) {
-        if (rowCounts[i] === 8) filledRows.push(i);
-        if (colCounts[i] === 8) filledCols.push(i);
-    }
-    if (filledRows.length === 0 && filledCols.length === 0) return;
-
-    // Remove filled cells from placedBlocks
-    placedBlocks.forEach((block) => {
-        for (let row = 0; row < block.shape.length; row++) {
-            for (let col = 0; col < block.shape[row].length; col++) {
-                if (block.shape[row][col] === 1) {
-                    let gridX = Math.round((block.x + col * size) / size);
-                    let gridY = Math.round((block.y + row * size) / size);
-                    if (filledRows.includes(gridY) || filledCols.includes(gridX)) {
-                        block.shape[row][col] = 0;
+        function drawBlock(block, placed = false) {
+            const blockSize = placed ? size : smallSize;
+            ctx.fillStyle = block.colour;
+            ctx.strokeStyle = "#888";
+            ctx.lineWidth = 2;
+            for (let row = 0; row < block.shape.length; row++) {
+                for (let col = 0; col < block.shape[row].length; col++) {
+                    if (block.shape[row][col] === 1) {
+                        ctx.save();
+                        ctx.shadowColor = "#bfc2ec";
+                        ctx.shadowBlur = (block.isDragging && !placed) ? 18 : 5;
+                        ctx.fillRect(
+                            block.x + col * blockSize,
+                            block.y + row * blockSize,
+                            blockSize,
+                            blockSize
+                        );
+                        ctx.shadowBlur = 0;
+                        ctx.strokeRect(
+                            block.x + col * blockSize,
+                            block.y + row * blockSize,
+                            blockSize,
+                            blockSize
+                        );
+                        ctx.restore();
                     }
                 }
             }
         }
-    });
-    // Score: 10 points per clear, 20 for double, etc.
-    score = score + 10 * (filledRows.length + filledCols.length);
 
-    // Remove blocks that are now empty (all zeros)
-    placedBlocks = placedBlocks.filter(block =>
-        block.shape.some(row => row.some(cell => cell === 1))
-    );
-}
-
-// -----------------------------------------------------------
-
-// Helper for correct drag snapping
-function getBottomFilledRow(shape) {
-    let maxRow = 0;
-    for (let r = 0; r < shape.length; r++) {
-        for (let c = 0; c < shape[r].length; c++) {
-            if (shape[r][c] === 1 && r > maxRow) maxRow = r;
+        function drawBlocks() {
+            placedBlocks.forEach((block) => drawBlock(block, true));
+            blocks.forEach((block) => drawBlock(block));
         }
-    }
-    return maxRow;
-}
-function getRightFilledCol(shape) {
-    let maxCol = 0;
-    for (let r = 0; r < shape.length; r++) {
-        for (let c = 0; c < shape[r].length; c++) {
-            if (shape[r][c] === 1 && c > maxCol) maxCol = c;
+
+        function getBlockCells(block, useSize = size) {
+            let cells = [];
+            for (let row = 0; row < block.shape.length; row++) {
+                for (let col = 0; col < block.shape[row].length; col++) {
+                    if (block.shape[row][col] === 1) {
+                        let gridX = Math.floor((block.x + col * useSize) / size);
+                        let gridY = Math.floor((block.y + row * useSize) / size);
+                        cells.push({ x: gridX, y: gridY });
+                    }
+                }
+            }
+            return cells;
         }
-    }
-    return maxCol;
-}
 
-// Redraw all
-function redrawAll() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawGrid();
-    drawBlocks();
-    drawScore();
-}
-
-redrawAll();
-
-// DRAG AND DROP HANDLERS
-let isDragging = false;
-let currentBlock = null;
-
-canvas.addEventListener("mousedown", function (e) {
-    if (isDragging) return;
-
-    let rect = canvas.getBoundingClientRect();
-    let x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    let y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-    blocks.forEach((block) => {
-        if (
-            !block.isPlaced &&
-            x >= block.x &&
-            x <= block.x + block.shape[0].length * smallSize &&
-            y >= block.y &&
-            y <= block.y + block.shape.length * smallSize
-        ) {
-            isDragging = true;
-            block.isDragging = true;
-            currentBlock = block;
+        function isOverlapping(testBlock) {
+            const testCells = getBlockCells(testBlock, size);
+            for (let block of placedBlocks) {
+                const blockCells = getBlockCells(block, size);
+                for (let cell of testCells) {
+                    if (blockCells.some(bc => bc.x === cell.x && bc.y === cell.y)) return true;
+                }
+            }
+            return false;
         }
-    });
-});
 
-canvas.addEventListener("mousemove", function (e) {
-    if (!isDragging || !currentBlock || currentBlock.isPlaced) return;
+        function isWithinBounds(block) {
+            const gridX = block.x / size;
+            const gridY = block.y / size;
+            for (let r = 0; r < block.shape.length; r++) {
+                for (let c = 0; c < block.shape[r].length; c++) {
+                    if (block.shape[r][c] === 1) {
+                        let x = gridX + c;
+                        let y = gridY + r;
+                        if (x < 0 || x >= 8 || y < 0 || y >= 8) return false;
+                    }
+                }
+            }
+            return true;
+        }
 
-    let rect = canvas.getBoundingClientRect();
-    let x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    let y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        function buildCellMap() {
+            let cellMap = {};
+            placedBlocks.forEach((block, bIdx) => {
+                for (let row = 0; row < block.shape.length; row++) {
+                    for (let col = 0; col < block.shape[row].length; col++) {
+                        if (block.shape[row][col] === 1) {
+                            let gridX = Math.round((block.x + col * size) / size);
+                            let gridY = Math.round((block.y + row * size) / size);
+                            let key = `${gridX},${gridY}`;
+                            cellMap[key] = {
+                                blockIndex: bIdx,
+                                row: row,
+                                col: col
+                            };
+                        }
+                    }
+                }
+            });
+            return cellMap;
+        }
 
-    let rightFilled = getRightFilledCol(currentBlock.shape);
-    let bottomFilled = getBottomFilledRow(currentBlock.shape);
+        function clearFilledRowsAndColumns() {
+            let cellMap = buildCellMap();
+            let rowCounts = Array(8).fill(0);
+            let colCounts = Array(8).fill(0);
 
-    let minX = 0;
-    let maxX = 350 - rightFilled * size;
-    let minY = 0;
-    let maxY = 350 - bottomFilled * size;
+            for (let key in cellMap) {
+                let [x, y] = key.split(',').map(Number);
+                if (x >= 0 && x < 8 && y >= 0 && y < 8) {
+                    colCounts[x]++;
+                    rowCounts[y]++;
+                }
+            }
 
-    currentBlock.x = Math.min(Math.max(Math.floor(x / size) * size, minX), maxX);
-    currentBlock.y = Math.min(Math.max(Math.floor(y / size) * size, minY), maxY);
+            let filledRows = [];
+            let filledCols = [];
+            for (let i = 0; i < 8; i++) {
+                if (rowCounts[i] === 8) filledRows.push(i);
+                if (colCounts[i] === 8) filledCols.push(i);
+            }
+            if (filledRows.length === 0 && filledCols.length === 0) return;
 
-    redrawAll();
-});
+            placedBlocks.forEach((block) => {
+                for (let row = 0; row < block.shape.length; row++) {
+                    for (let col = 0; col < block.shape[row].length; col++) {
+                        if (block.shape[row][col] === 1) {
+                            let gridX = Math.round((block.x + col * size) / size);
+                            let gridY = Math.round((block.y + row * size) / size);
+                            if (filledRows.includes(gridY) || filledCols.includes(gridX)) {
+                                block.shape[row][col] = 0;
+                            }
+                        }
+                    }
+                }
+            });
+            score = score + 10 * (filledRows.length + filledCols.length);
 
-canvas.addEventListener("mouseup", function (e) {
-    if (!isDragging || !currentBlock) return;
-    isDragging = false;
+            placedBlocks = placedBlocks.filter(block =>
+                block.shape.some(row => row.some(cell => cell === 1))
+            );
+        }
 
-    let rect = canvas.getBoundingClientRect();
-    let mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-    let mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+        function checkGameOver() {
+            for (let block of blocks) {
+                for (let gridY = 0; gridY < 8; gridY++) {
+                    for (let gridX = 0; gridX < 8; gridX++) {
+                        block.x = gridX * size;
+                        block.y = gridY * size;
+                        if (isWithinBounds(block) && !isOverlapping(block)) {
+                            block.x = block.originalX;
+                            block.y = block.originalY;
+                            return false;
+                        }
+                    }
+                }
+                block.x = block.originalX;
+                block.y = block.originalY;
+            }
+            return true;
+        }
 
-    // Snap to grid
-    currentBlock.x = Math.floor(mouseX / size) * size;
-    currentBlock.y = Math.floor(mouseY / size) * size;
+        function redrawAll() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawBlocks();
+            drawScore();
+            drawHighscore();
+        }
 
-    let canPlace = isWithinBounds(currentBlock) && !isOverlapping(currentBlock);
+        redrawAll();
 
-    if (canPlace) {
-        currentBlock.isPlaced = true;
-        placedBlocks.push({
-            x: currentBlock.x,
-            y: currentBlock.y,
-            colour: currentBlock.colour,
-            shape: currentBlock.shape.map(row => row.slice()),
-            isPlaced: true
+        let isDragging = false;
+        let currentBlock = null;
+        let lastTouchTime = 0;
+        let isGameOver = false; // Track game-over state to avoid premature redraw
+
+        canvas.addEventListener("mousedown", function (e) {
+            if (isDragging || isGameOver) return;
+
+            let rect = canvas.getBoundingClientRect();
+            let x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            let y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            blocks.forEach((block) => {
+                if (
+                    !block.isPlaced &&
+                    x >= block.x &&
+                    x <= block.x + block.shape[0].length * smallSize &&
+                    y >= block.y &&
+                    y <= block.y + block.shape.length * smallSize
+                ) {
+                    isDragging = true;
+                    block.isDragging = true;
+                    currentBlock = block;
+                    console.log("Selected block:", block);
+                }
+            });
         });
-        blocks = blocks.filter(b => b !== currentBlock);
 
-        clearFilledRowsAndColumns();
-    } else {
-        currentBlock.x = currentBlock.originalX;
-        currentBlock.y = currentBlock.originalY;
-    }
+        function getBottomFilledRow(shape) {
+            let maxRow = 0;
+            for (let r = 0; r < shape.length; r++) {
+                for (let c = 0; c < shape[r].length; c++) {
+                    if (shape[r][c] === 1 && r > maxRow) maxRow = r;
+                }
+            }
+            return maxRow;
+        }
 
-    if (currentBlock) currentBlock.isDragging = false;
-    currentBlock = null;
+        function getRightFilledCol(shape) {
+            let maxCol = 0;
+            for (let r = 0; r < shape.length; r++) {
+                for (let c = 0; c < shape[r].length; c++) {
+                    if (shape[r][c] === 1 && c > maxCol) maxCol = c;
+                }
+            }
+            return maxCol;
+        }
 
-    redrawAll();
+        canvas.addEventListener("mousemove", function (e) {
+            if (!isDragging || !currentBlock || currentBlock.isPlaced) return;
 
-    if (blocks.length === 0) {
-        setTimeout(() => {
-            regenerateBlocks();
+            let rect = canvas.getBoundingClientRect();
+            let x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            let y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            let rightFilled = getRightFilledCol(currentBlock.shape);
+            let bottomFilled = getBottomFilledRow(currentBlock.shape);
+
+            let gridX = Math.floor(x / size);
+            let gridY = Math.floor(y / size);
+
+            gridX = Math.max(0, Math.min(gridX, 8 - (rightFilled + 1)));
+            gridY = Math.max(0, Math.min(gridY, 8 - (bottomFilled + 1)));
+
+            currentBlock.x = gridX * size;
+            currentBlock.y = gridY * size;
+
             redrawAll();
-        }, 400);
-    }
-});
+        });
 
-// Touch events for mobile
-canvas.addEventListener("touchstart", function (e) {
-    if (isDragging) return;
-    let touch = e.touches[0];
-    let rect = canvas.getBoundingClientRect();
-    let x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-    let y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+        canvas.addEventListener("mouseup", function (e) {
+            if (Date.now() - lastTouchTime < 100) return;
+            if (!isDragging || !currentBlock) return;
+            isDragging = false;
 
-    blocks.forEach((block) => {
-        if (
-            !block.isPlaced &&
-            x >= block.x &&
-            x <= block.x + block.shape[0].length * smallSize &&
-            y >= block.y &&
-            y <= block.y + block.shape.length * smallSize
-        ) {
-            isDragging = true;
-            block.isDragging = true;
-            currentBlock = block;
+            let canPlace = isWithinBounds(currentBlock) && !isOverlapping(currentBlock);
+
+            if (canPlace) {
+                console.log("Placing block at:", { x: currentBlock.x, y: currentBlock.y });
+                currentBlock.isPlaced = true;
+                placedBlocks.push({
+                    x: currentBlock.x,
+                    y: currentBlock.y,
+                    colour: currentBlock.colour,
+                    shape: currentBlock.shape.map(row => row.slice()),
+                    isPlaced: true
+                });
+                blocks = blocks.filter(b => b !== currentBlock);
+                clearFilledRowsAndColumns();
+
+                if (score > highscore) {
+                    highscore = score;
+                    localStorage.setItem('highscore', JSON.stringify(highscore));
+                }
+
+                console.log("Blocks after placement:", blocks);
+                console.log("Placed blocks:", placedBlocks);
+
+                if (blocks.length === 0) {
+                    setTimeout(() => {
+                        regenerateBlocks();
+                        redrawAll();
+                        if (checkGameOver()) {
+                            isGameOver = true;
+                            // Redraw the current state before adding the game over message
+                            redrawAll();
+                            // Draw the game over message
+                            ctx.save();
+                            ctx.font = "bold 30px Handjet, Arial, sans-serif";
+                            ctx.fillStyle = "#a32f2f";
+                            ctx.textAlign = "center";
+                            ctx.fillText("Game Over! No valid moves left. Final Score: " + score, canvas.width / 2, 200);
+                            ctx.restore();
+                            // Delay game reset
+                            setTimeout(() => {
+                                score = 0;
+                                placedBlocks = [];
+                                regenerateBlocks();
+                                isGameOver = false;
+                                redrawAll();
+                            }, 5000);
+                        }
+                    }, 400);
+                } else if (checkGameOver()) {
+                    isGameOver = true;
+                    // Redraw the current state before adding the game over message
+                    redrawAll();
+                    // Draw the game over message
+                    ctx.save();
+                    ctx.font = "bold 30px Handjet, Arial, sans-serif";
+                    ctx.fillStyle = "#a32f2f";
+                    ctx.textAlign = "center";
+                    ctx.fillText("Game Over! No valid moves left. Final Score: " + score, canvas.width / 2, 200);
+                    ctx.restore();
+                    // Delay game reset
+                    setTimeout(() => {
+                        score = 0;
+                        placedBlocks = [];
+                        regenerateBlocks();
+                        isGameOver = false;
+                        redrawAll();
+                    }, 5000);
+                }
+            } else {
+                currentBlock.x = currentBlock.originalX;
+                currentBlock.y = currentBlock.originalY;
+                console.log("Block returned to:", { x: currentBlock.x, y: currentBlock.y });
+            }
+
+            if (currentBlock) {
+                currentBlock.isDragging = false;
+                currentBlock.isPlaced = false;
+            }
+            currentBlock = null;
+
+            blocks.forEach(block => {
+                block.x = block.originalX;
+                block.y = block.originalY;
+                block.isDragging = false;
+                block.isPlaced = false;
+            });
+
+            // Only redraw if not in game-over state
+            if (!isGameOver) {
+                redrawAll();
+            }
+        });
+
+        canvas.addEventListener("touchstart", function (e) {
+            if (isDragging || isGameOver) return;
+            let touch = e.touches[0];
+            let rect = canvas.getBoundingClientRect();
+            let x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+            let y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+            blocks.forEach((block) => {
+                if (
+                    !block.isPlaced &&
+                    x >= block.x &&
+                    x <= block.x + block.shape[0].length * smallSize &&
+                    y >= block.y &&
+                    y <= block.y + block.shape.length * smallSize
+                ) {
+                    isDragging = true;
+                    block.isDragging = true;
+                    currentBlock = block;
+                    console.log("Selected block (touch):", block);
+                    e.preventDefault();
+                }
+            });
+        }, { passive: false });
+
+        canvas.addEventListener("touchmove", function (e) {
+            if (!isDragging || !currentBlock || currentBlock.isPlaced) return;
+            let touch = e.touches[0];
+            let rect = canvas.getBoundingClientRect();
+            let x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+            let y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+            let rightFilled = getRightFilledCol(currentBlock.shape);
+            let bottomFilled = getBottomFilledRow(currentBlock.shape);
+
+            let gridX = Math.floor(x / size);
+            let gridY = Math.floor(y / size);
+
+            gridX = Math.max(0, Math.min(gridX, 8 - (rightFilled + 1)));
+            gridY = Math.max(0, Math.min(gridY, 8 - (bottomFilled + 1)));
+
+            currentBlock.x = gridX * size;
+            currentBlock.y = gridY * size;
+
+            redrawAll();
             e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener("touchend", function (e) {
+            lastTouchTime = Date.now();
+            if (!isDragging || !currentBlock) return;
+            isDragging = false;
+
+            let canPlace = isWithinBounds(currentBlock) && !isOverlapping(currentBlock);
+
+            if (canPlace) {
+                console.log("Placing block at (touch):", { x: currentBlock.x, y: currentBlock.y });
+                currentBlock.isPlaced = true;
+                placedBlocks.push({
+                    x: currentBlock.x,
+                    y: currentBlock.y,
+                    colour: currentBlock.colour,
+                    shape: currentBlock.shape.map(row => row.slice()),
+                    isPlaced: true
+                });
+                blocks = blocks.filter(b => b !== currentBlock);
+                clearFilledRowsAndColumns();
+
+                if (score > highscore) {
+                    highscore = score;
+                    localStorage.setItem('highscore', JSON.stringify(highscore));
+                }
+
+                console.log("Blocks after placement (touch):", blocks);
+                console.log("Placed blocks (touch):", placedBlocks);
+
+                if (blocks.length === 0) {
+                    setTimeout(() => {
+                        regenerateBlocks();
+                        redrawAll();
+                        if (checkGameOver()) {
+                            isGameOver = true;
+                            // Redraw the current state before adding the game over message
+                            redrawAll();
+                            // Draw the game over message
+                            ctx.save();
+                            ctx.font = "bold 30px Handjet, Arial, sans-serif";
+                            ctx.fillStyle = "#a32f2f";
+                            ctx.textAlign = "center";
+                            ctx.fillText("Game Over! No valid moves left. Final Score: " + score, canvas.width / 2, 200);
+                            ctx.restore();
+                            // Delay game reset
+                            setTimeout(() => {
+                                score = 0;
+                                placedBlocks = [];
+                                regenerateBlocks();
+                                isGameOver = false;
+                                redrawAll();
+                            }, 5000);
+                        }
+                    }, 400);
+                } else if (checkGameOver()) {
+                    isGameOver = true;
+                    // Redraw the current state before adding the game over message
+                    redrawAll();
+                    // Draw the game over message
+                    ctx.save();
+                    ctx.font = "30px Handjet, Arial, sans-serif";
+                    ctx.fillStyle = "#ff0000";
+                    ctx.textAlign = "center";
+                    ctx.fillText("Game Over! No valid moves left. Final Score: " + score, canvas.width / 2, 150);
+                    ctx.restore();
+                    // Delay game reset
+                    setTimeout(() => {
+                        score = 0;
+                        placedBlocks = [];
+                        regenerateBlocks();
+                        isGameOver = false;
+                        redrawAll();
+                    }, 5000);
+                }
+            } else {
+                currentBlock.x = currentBlock.originalX;
+                currentBlock.y = currentBlock.originalY;
+                console.log("Block returned to (touch):", { x: juntouchBlock.x, y: currentBlock.y });
+            }
+
+            if (currentBlock) {
+                currentBlock.isDragging = false;
+                currentBlock.isPlaced = false;
+            }
+            currentBlock = null;
+
+            blocks.forEach(block => {
+                block.x = block.originalX;
+                block.y = block.originalY;
+                block.isDragging = false;
+                block.isPlaced = false;
+            });
+
+            // Only redraw if not in game-over state
+            if (!isGameOver) {
+                redrawAll();
+            }
+        }, { passive: false });
+
+        function resizeCanvas() {
+            let maxWidth = Math.min(window.innerWidth * 0.98, 550);
+            let scale = maxWidth / 550;
+            canvas.style.width = maxWidth + "px";
+            canvas.style.height = (700 * scale) + "px";
         }
-    });
-}, {passive: false});
-
-canvas.addEventListener("touchmove", function (e) {
-    if (!isDragging || !currentBlock || currentBlock.isPlaced) return;
-    let touch = e.touches[0];
-    let rect = canvas.getBoundingClientRect();
-    let x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-    let y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-
-    let rightFilled = getRightFilledCol(currentBlock.shape);
-    let bottomFilled = getBottomFilledRow(currentBlock.shape);
-
-    let minX = 0;
-    let maxX = 350 - rightFilled * size;
-    let minY = 0;
-    let maxY = 350 - bottomFilled * size;
-
-    currentBlock.x = Math.min(Math.max(Math.floor(x / size) * size, minX), maxX);
-    currentBlock.y = Math.min(Math.max(Math.floor(y / size) * size, minY), maxY);
-
-    redrawAll();
-    e.preventDefault();
-}, {passive: false});
-
-canvas.addEventListener("touchend", function (e) {
-    if (!isDragging || !currentBlock) return;
-    isDragging = false;
-    // Use last known position
-    let mouseX = currentBlock.x + size / 2;
-    let mouseY = currentBlock.y + size / 2;
-
-    currentBlock.x = Math.floor(mouseX / size) * size;
-    currentBlock.y = Math.floor(mouseY / size) * size;
-
-    let canPlace = isWithinBounds(currentBlock) && !isOverlapping(currentBlock);
-
-    if (canPlace) {
-        currentBlock.isPlaced = true;
-        placedBlocks.push({
-            x: currentBlock.x,
-            y: currentBlock.y,
-            colour: currentBlock.colour,
-            shape: currentBlock.shape.map(row => row.slice()),
-            isPlaced: true
-        });
-        blocks = blocks.filter(b => b !== currentBlock);
-
-        clearFilledRowsAndColumns();
-    } else {
-        currentBlock.x = currentBlock.originalX;
-        currentBlock.y = currentBlock.originalY;
-    }
-
-    if (currentBlock) currentBlock.isDragging = false;
-    currentBlock = null;
-    redrawAll();
-
-    if (blocks.length === 0) {
-        setTimeout(() => {
-            regenerateBlocks();
-            redrawAll();
-        }, 400);
-    }
-}, {passive: false});
-
-// Handle window resize for mobile: scale canvas
-function resizeCanvas() {
-    let maxWidth = Math.min(window.innerWidth * 0.98, 550);
-    let scale = maxWidth / 550;
-    canvas.style.width = maxWidth + "px";
-    canvas.style.height = (700 * scale) + "px";
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    
