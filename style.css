@@ -3,3 +3,9 @@ html, body {
     height: 580px;
     overflow: hidden;
 }
+
+canvas {
+    border: 1px solid black;
+    display: block;
+    margin: 0 auto;
+}
